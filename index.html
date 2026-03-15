@@ -836,16 +836,21 @@
       if (state.luck > 0) perks.push(`🍀 Suerte +${state.luck}`);
       if (state.shield > 0) perks.push(`🛡️ Escudo x${state.shield}`);
       if (state.clockLevel > 0) perks.push(`⏱️ Tiempo +${state.clockLevel}`);
-      if (!perks.length) perks.push('Sin mejoras');
       el.perkList.innerHTML = perks.map(p => `<div class="perk">${p}</div>`).join('');
     }
 
     function currentLevelTime() {
-      return 150;
+      return 150 + state.clockLevel * 15;
     }
 
     function debtForLevel(level) {
       return Math.floor(1200 * Math.pow(1.55, level - 1));
+    }
+
+    function setBoard(title, sub, html = '') {
+      el.tableTitle.textContent = title;
+      el.tableSub.textContent = sub;
+      el.board.innerHTML = html;
     }
 
     function updateHUD() {
@@ -879,7 +884,9 @@
 
       const maxBet = Math.max(25, Math.min(2000, Math.floor(state.money / 25) * 25 || 25));
       el.betRange.max = maxBet;
+      el.betRange.min = 25;
       if (+el.betRange.value > maxBet) el.betRange.value = maxBet;
+      if (+el.betRange.value < 25) el.betRange.value = 25;
       el.betValue.textContent = fmt(+el.betRange.value);
 
       const canAfford = amt => state.money >= amt && state.runActive && !state.gameOver && !state.inShopPhase;
@@ -887,7 +894,7 @@
       el.buyLuckBtn.disabled = !canAfford(300);
       el.buyShieldBtn.disabled = !canAfford(400);
       el.buyDebtCutBtn.disabled = !canAfford(500);
-      el.cashOutBtn.disabled = !state.runActive || state.gameOver || state.inShopPhase;
+      el.cashOutBtn.disabled = !state.runActive || state.gameOver || state.inShopPhase || state.money <= 0;
       renderPerks();
     }
 
@@ -920,9 +927,7 @@
       state.inShopPhase = false;
       state.shopChoices = [];
       clearBoards();
-      el.tableTitle.textContent = 'Tablero de juego';
-      el.tableSub.textContent = 'Paga la deuda actual. Cuando la liquides, entrarás en la tienda y podrás comprar una ventaja con tu dinero sobrante.';
-      el.board.innerHTML = '';
+      setBoard('Tablero de juego', 'Paga la deuda actual. Cuando la liquides, entrarás en la tienda y podrás comprar una ventaja con tu dinero sobrante.');
       el.storyBox.textContent = 'Sistema estilo Balatro: empiezas con una deuda baja. Cuando la pagas por completo, compras una ventaja con tu dinero sobrante y pasas a una deuda mayor con el tiempo reiniciado.';
       updateHUD();
       renderLog();
@@ -999,6 +1004,12 @@
         addLog('Encuentras una ficha de tiempo. Recuperas ' + time + ' segundos.', 'good');
       }
 
+      if (state.timeLeft <= 0) {
+        state.timeLeft = 0;
+        loseRun('Un evento te ha dejado sin tiempo.');
+        return;
+      }
+
       updateHUD();
     }
 
@@ -1023,10 +1034,12 @@
 
     function payDebt(amount) {
       const payment = Math.min(amount, state.money, state.debt);
+      if (payment <= 0) return;
       state.money -= payment;
       state.debt -= payment;
       addLog('Pagas ' + fmt(payment) + ' de la deuda.', 'good');
       if (state.debt <= 0) {
+        state.debt = 0;
         finishDebt();
       }
     }
@@ -1114,8 +1127,7 @@
     }
 
     function renderBlackjack(fresh = false) {
-      el.tableTitle.textContent = 'Blackjack rápido';
-      el.tableSub.textContent = 'Acércate a 21. Puedes plantarte o pedir. Si ganas, cobras bien; si empatas, recuperas tu apuesta.';
+      setBoard('Blackjack rápido', 'Acércate a 21. Puedes plantarte o pedir. Si ganas, cobras bien; si empatas, recuperas tu apuesta.');
       if (fresh || !state.bj) state.bj = { active: false, player: [], dealer: [], bet: 0, finished: false };
       const bj = state.bj;
       const playerVal = handValue(bj.player || []);
@@ -1153,13 +1165,13 @@
         dealer: [drawRandomCard(), drawRandomCard()]
       };
       addLog('Entras en Blackjack apostando ' + fmt(bet) + '.', 'info');
-      if (handValue(state.bj.player) === 21) blackjackStand(true);
+      if (!state.gameOver && handValue(state.bj.player) === 21) blackjackStand(true);
       renderBlackjack();
       updateHUD();
     }
 
     function blackjackHit() {
-      if (!state.bj?.active || state.bj.finished) return;
+      if (!state.bj?.active || state.bj.finished || state.gameOver) return;
       state.bj.player.push(drawRandomCard());
       spendTime(3);
       if (state.gameOver) return;
@@ -1175,7 +1187,7 @@
     }
 
     function blackjackStand(auto = false) {
-      if (!state.bj?.bet || state.bj.finished) return;
+      if (!state.bj?.bet || state.bj.finished || state.gameOver) return;
       if (!auto) spendTime(3);
       if (state.gameOver) return;
       const bj = state.bj;
@@ -1205,8 +1217,7 @@
     }
 
     function renderSlots(fresh = false) {
-      el.tableTitle.textContent = 'Tragaperras';
-      el.tableSub.textContent = 'Tres rodillos. Lo normal es sobrevivir a duras penas. Lo excepcional cambia toda la partida.';
+      setBoard('Tragaperras', 'Tres rodillos. Lo normal es sobrevivir a duras penas. Lo excepcional cambia toda la partida.');
       if (fresh || !state.slots) state.slots = { result: ['❔', '❔', '❔'], lastWin: 0 };
       const s = state.slots;
       el.board.innerHTML = `
@@ -1260,8 +1271,7 @@
     }
 
     function renderDice(fresh = false) {
-      el.tableTitle.textContent = 'Doble o nada';
-      el.tableSub.textContent = 'Lanzas dos dados contra la banca. Si tu suma es mayor, cobras. Si sacas dobles altos, premio extra.';
+      setBoard('Doble o nada', 'Lanzas dos dados contra la banca. Si tu suma es mayor, cobras. Si sacas dobles altos, premio extra.');
       if (fresh || !state.dice) state.dice = { player: ['?','?'], enemy: ['?','?'], lastWin: 0 };
       const d = state.dice;
       el.board.innerHTML = `
@@ -1304,8 +1314,7 @@
     }
 
     function renderRoulette(fresh = false) {
-      el.tableTitle.textContent = 'Ruleta de color';
-      el.tableSub.textContent = 'Elige un color y deja que gire. Rojo o negro doblan. Verde casi nunca sale, pero revienta la banca.';
+      setBoard('Ruleta de color', 'Elige un color y deja que gire. Rojo o negro doblan. Verde casi nunca sale, pero revienta la banca.');
       if (fresh || !state.roulette) state.roulette = { result: '❔', lastWin: 0 };
       const r = state.roulette;
       el.board.innerHTML = `
@@ -1351,8 +1360,7 @@
     }
 
     function renderHorses(fresh = false) {
-      el.tableTitle.textContent = 'Carrera de caballos';
-      el.tableSub.textContent = 'Escoge caballo y resuelve una carrera express. Más premio si eliges al tapado.';
+      setBoard('Carrera de caballos', 'Escoge caballo y resuelve una carrera express. Más premio si eliges al tapado.');
       if (fresh || !state.horses) state.horses = { result: '—', lastWin: 0 };
       const h = state.horses;
       el.board.innerHTML = `
@@ -1405,8 +1413,7 @@
     }
 
     function renderHilo(fresh = false) {
-      el.tableTitle.textContent = 'Hi-Lo';
-      el.tableSub.textContent = 'Recibes una carta visible. Decide si la siguiente será mayor o menor. Cada acierto aumenta el bote. Puedes retirarte.';
+      setBoard('Hi-Lo', 'Recibes una carta visible. Decide si la siguiente será mayor o menor. Cada acierto aumenta el bote. Puedes retirarte.');
       if (fresh || !state.hilo) {
         state.hilo = { active: false, current: null, pot: 0, bet: 0, streak: 0, resultText: 'Sin ronda iniciada' };
       }
@@ -1454,7 +1461,7 @@
 
     function hiloGuess(dir) {
       const h = state.hilo;
-      if (!h?.active) return;
+      if (!h?.active || state.gameOver) return;
       spendTime(2);
       if (state.gameOver) return;
       const next = drawRandomCard();
@@ -1481,7 +1488,7 @@
 
     function hiloCash() {
       const h = state.hilo;
-      if (!h?.active) return;
+      if (!h?.active || state.gameOver) return;
       h.active = false;
       state.money += h.pot;
       addLog('Te retiras de Hi-Lo y cobras ' + fmt(h.pot) + '.', 'good');
@@ -1514,7 +1521,10 @@
         const cut = 350 + state.luck * 25;
         state.debt = Math.max(0, state.debt - cut);
         addLog('Sobornas a contabilidad y reduces la deuda en ' + fmt(cut) + '.', 'good');
-        if (state.debt <= 0) finishDebt();
+        if (state.debt <= 0) {
+          state.debt = 0;
+          finishDebt();
+        }
       }
       updateHUD();
     }
@@ -1531,12 +1541,12 @@
 
     function shopPool() {
       return [
-        { id: 'luck', title: '🍀 Suerte +1', desc: 'Mejora ligeramente tus probabilidades.', price: 250, apply: () => state.luck += 1 },
-        { id: 'luck2', title: '🍀🍀 Suerte +2', desc: 'Una mejora fuerte para las tiradas.', price: 430, apply: () => state.luck += 2 },
-        { id: 'shield', title: '🛡️ Escudo', desc: 'Bloquea un evento negativo.', price: 300, apply: () => state.shield += 1 },
-        { id: 'time', title: '⏱️ +15 s por nivel', desc: 'Cada nueva deuda empezará con más tiempo.', price: 380, apply: () => state.clockLevel += 1 },
-        { id: 'cash', title: '💸 Colchón', desc: 'Recibes dinero instantáneo.', price: 200, apply: () => state.money += 320 },
-        { id: 'calm', title: '❄️ Presión -20%', desc: 'Baja la presión del casino.', price: 220, apply: () => state.heat = Math.max(0, state.heat - 20) }
+        { id: 'luck', title: '🍀 Suerte +1', desc: 'Mejora ligeramente tus probabilidades.', price: 250, apply: () => { state.luck += 1; } },
+        { id: 'luck2', title: '🍀🍀 Suerte +2', desc: 'Una mejora fuerte para las tiradas.', price: 430, apply: () => { state.luck += 2; } },
+        { id: 'shield', title: '🛡️ Escudo', desc: 'Bloquea un evento negativo.', price: 300, apply: () => { state.shield += 1; } },
+        { id: 'time', title: '⏱️ +15 s por nivel', desc: 'Cada nueva deuda empezará con más tiempo.', price: 380, apply: () => { state.clockLevel += 1; } },
+        { id: 'cash', title: '💸 Colchón', desc: 'Recibes dinero instantáneo.', price: 200, apply: () => { state.money += 320; } },
+        { id: 'calm', title: '❄️ Presión -20%', desc: 'Baja la presión del casino.', price: 220, apply: () => { state.heat = Math.max(0, state.heat - 20); } }
       ];
     }
 
@@ -1561,9 +1571,7 @@
     function enterShopPhase() {
       state.inShopPhase = true;
       state.shopChoices = shuffled(shopPool()).slice(0, 3);
-      el.tableTitle.textContent = 'Tienda entre deudas';
-      el.tableSub.textContent = 'Has limpiado la deuda. Compra una ventaja con el dinero sobrante o sáltala y pasa a la siguiente deuda.';
-      el.board.innerHTML = `
+      setBoard('Tienda entre deudas', 'Has limpiado la deuda. Compra una ventaja con el dinero sobrante o sáltala y pasa a la siguiente deuda.', `
         <div class="gamesGrid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
           ${state.shopChoices.map((item, index) => `
             <article class="gameCard">
@@ -1571,14 +1579,19 @@
               <div class="gameName">${item.title}</div>
               <div class="gameDesc">${item.desc}</div>
               <div class="gameMeta"><span class="chip">Precio ${fmt(item.price)}</span></div>
-              <button ${state.money < item.price ? 'disabled' : ''} onclick="buyShopUpgrade(${index})">Comprar</button>
+              <button ${state.money < item.price ? 'disabled' : ''} data-shop-index="${index}">Comprar</button>
             </article>
           `).join('')}
         </div>
         <div class="controls" style="margin-top:16px;">
-          <button class="secondary" onclick="skipShopAndContinue()">Continuar sin comprar</button>
+          <button class="secondary" id="skipShopBtn">Continuar sin comprar</button>
         </div>
-      `;
+      `);
+      el.board.querySelectorAll('[data-shop-index]').forEach(btn => {
+        btn.addEventListener('click', () => buyShopUpgrade(Number(btn.dataset.shopIndex)));
+      });
+      const skipBtn = document.getElementById('skipShopBtn');
+      if (skipBtn) skipBtn.addEventListener('click', skipShopAndContinue);
       updateHUD();
     }
 
@@ -1604,19 +1617,14 @@
       state.shopChoices = [];
       state.debt = debtForLevel(state.level);
       state.initialDebt = state.debt;
-      state.timeLeft = currentLevelTime() + state.clockLevel * 15;
+      state.timeLeft = currentLevelTime();
       state.maxTime = state.timeLeft;
       state.heat = Math.max(0, state.heat - 15);
       clearBoards();
-      el.tableTitle.textContent = 'Tablero de juego';
-      el.tableSub.textContent = 'Nivel ' + state.level + '. Nueva deuda: ' + fmt(state.debt) + '. El tiempo se ha reiniciado.';
-      el.board.innerHTML = '';
+      setBoard('Tablero de juego', 'Nivel ' + state.level + '. Nueva deuda: ' + fmt(state.debt) + '. El tiempo se ha reiniciado.');
       addLog('Comienza la deuda del nivel ' + state.level + ': ' + fmt(state.debt) + '.', 'info');
       updateHUD();
     }
-
-    window.buyShopUpgrade = buyShopUpgrade;
-    window.skipShopAndContinue = skipShopAndContinue;
 
     el.betRange.addEventListener('input', () => {
       el.betValue.textContent = fmt(+el.betRange.value);
