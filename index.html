@@ -559,21 +559,199 @@
         grid-template-areas:
           "top"
           "sidebar"
+          "games"
           "board"
           "events";
-        grid-template-rows: auto auto auto auto;
+        grid-template-rows: auto auto auto auto auto;
       }
 
       .topPanel {
         grid-template-columns: 1fr;
       }
+
+      .gamesGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     @media (max-width: 760px) {
-      .gamesGrid { grid-template-columns: 1fr; }
-      .timerShell { grid-template-columns: 1fr; }
-      .controls { flex-direction: column; align-items: stretch; }
-      input[type="range"] { width: 100%; }
+      body {
+        padding: 8px;
+      }
+
+      .app {
+        gap: 8px;
+        min-height: auto;
+      }
+
+      .panel,
+      .timerShell,
+      .gameCard,
+      .stat,
+      .storyBox,
+      .logEntry,
+      .warning {
+        border-radius: 12px;
+      }
+
+      .section,
+      .topPanel,
+      .boardPanel,
+      .eventsPanel,
+      .gamesPanel {
+        padding: 10px;
+      }
+
+      .topPanel {
+        gap: 10px;
+      }
+
+      .timerShell {
+        grid-template-columns: 72px 1fr;
+        gap: 10px;
+        min-height: 104px;
+        padding: 10px;
+      }
+
+      .timerRingWrap,
+      .timerSvg {
+        width: 72px;
+        height: 72px;
+      }
+
+      .timerMain {
+        font-size: 1.2rem;
+      }
+
+      .blockTitle {
+        font-size: 1rem;
+      }
+
+      .text,
+      .tableSub,
+      .storyBox,
+      .logEntry,
+      .gameDesc,
+      .warning,
+      .betBadge,
+      button,
+      .miniTitle,
+      .timerBarLabel,
+      .meterLabel {
+        font-size: 0.78rem;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .controls button,
+      button.playBtn,
+      .gameCard button {
+        width: 100%;
+        min-height: 42px;
+        padding: 10px;
+      }
+
+      .gamesGrid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .gameCard {
+        min-height: 126px;
+        padding: 10px;
+      }
+
+      .gameIcon {
+        font-size: 1.2rem;
+      }
+
+      .gameName {
+        font-size: 0.88rem;
+      }
+
+      .boardPanel {
+        min-height: 0;
+      }
+
+      .betRow {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        align-items: stretch;
+      }
+
+      input[type="range"] {
+        width: 100%;
+      }
+
+      #gameBoard {
+        min-height: 260px;
+      }
+
+      .cardsRow,
+      .slotsRow,
+      .diceRow,
+      .bossRow {
+        gap: 8px;
+      }
+
+      .card {
+        width: 58px;
+        height: 84px;
+        padding: 7px;
+      }
+
+      .slot {
+        width: 60px;
+        height: 60px;
+        font-size: 1.4rem;
+      }
+
+      .die {
+        width: 56px;
+        height: 56px;
+        font-size: 1.4rem;
+      }
+
+      .sidebar {
+        gap: 8px;
+      }
+
+      .modal {
+        padding: 16px;
+        border-radius: 16px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .gamesGrid {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .topPanel,
+      .section,
+      .boardPanel,
+      .eventsPanel,
+      .gamesPanel {
+        padding: 8px;
+      }
+
+      .timerShell {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .betBadge {
+        min-width: 0;
+      }
     }
   </style>
 </head>
@@ -807,6 +985,11 @@
       timerBarFill: document.getElementById('timerBarFill'),
       timerProgress: document.getElementById('timerProgress')
     };
+
+    function updateBetStep() {
+      const mobile = window.innerWidth <= 760;
+      el.betRange.step = mobile ? '25' : '25';
+    }
 
     function fmt(n) {
       return '$' + Math.max(0, Math.floor(n)).toLocaleString('es-ES');
@@ -1642,6 +1825,8 @@
       btn.addEventListener('click', () => openGame(btn.dataset.game));
     });
 
+    window.addEventListener('resize', updateBetStep);
+    updateBetStep();
     resetState();
   </script>
 </body>
