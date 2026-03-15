@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Debt Rush Casino</title>
+  <style>
+    :root {
+      --bg: #07110d;
+      --panel: rgba(10, 24, 18, 0.92);
+      --panel-2: rgba(18, 39, 30, 0.95);
+      --gold: #f8d36a;
+      --gold-2: #ffefb0;
+      --red: #ff5f5f;
+      --green: #59e39d;
+      --blue: #6bc7ff;
+      --text: #f5f3ea;
+      --muted: #b7c5bc;
+      --shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 221, 120, 0.12), transparent 28%),
+        radial-gradient(circle at 80% 10%, rgba(255, 80, 80, 0.12), transparent 24%),
+        linear-gradient(180deg, #0b1813 0%, #07110d 100%);
+    }
+
+    body { padding: 18px; }
+
+    .app {
+      max-width: 1540px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      grid-template-rows: 230px minmax(480px, 1fr) 150px;
+      grid-template-areas:
+        "timer games"
+        "stats board"
+        "events events";
+      gap: 12px;
+      min-height: calc(100vh - 36px);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(248, 211, 106, 0.18);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .timerPanel {
+      grid-area: timer;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        radial-gradient(circle at top right, rgba(255, 214, 102, 0.16), transparent 34%),
+        radial-gradient(circle at bottom left, rgba(100, 200, 255, 0.14), transparent 34%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+    }
+
+    .statsPanel {
+      grid-area: stats;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+    }
+
+    .gamesPanel {
+      grid-area: games;
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+    }
+
+    .boardPanel {
+      grid-area: board;
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(31, 84, 53, 0.55), rgba(8, 28, 19, 0.8));
+      position: relative;
+    }
+
+    .boardPanel::before {
+      content: "";
+      position: absolute;
+      inset: 14px;
+      border: 2px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      pointer-events: none;
+    }
+
+    .eventsPanel {
+      grid-area: events;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    }
+
+    .blockTitle {
+      font-size: 1.28rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      margin: 0 0 8px;
+      color: var(--gold-2);
+    }
+
+    .miniTitle {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .text {
+      color: var(--muted);
+      line-height: 1.5;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .timerShell {
+      margin-top: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+      border: 1px solid rgba(248, 211, 106, 0.14);
+      border-radius: 18px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 108px 1fr;
+      gap: 16px;
+      align-items: center;
+      min-height: 138px;
+    }
+
+    .timerRingWrap {
+      position: relative;
+      width: 98px;
+      height: 98px;
+      margin: 0 auto;
+    }
+
+    .timerSvg {
+      width: 98px;
+      height: 98px;
+      transform: rotate(-90deg);
+    }
+
+    .timerTrack {
+      fill: none;
+      stroke: rgba(255,255,255,0.08);
+      stroke-width: 10;
+    }
+
+    .timerProgress {
+      fill: none;
+      stroke: #f8d36a;
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 301.59;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.35s ease, stroke 0.35s ease;
+      filter: drop-shadow(0 0 8px rgba(248,211,106,0.25));
+    }
+
+    .timerCenter {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .timerLabel {
+      font-size: 0.68rem;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .timerMain {
+      font-size: 1.9rem;
+      line-height: 1;
+      font-weight: 1000;
+      color: var(--gold-2);
+      margin: 4px 0;
+    }
+
+    .timerSeconds {
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .timerBarLabel, .meterLabel {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .timerBar, .meter {
+      height: 14px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .timerBarFill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #59e39d, #f8d36a 58%, #ff5f5f);
+      transition: width 0.35s ease, filter 0.35s ease;
+    }
+
+    .heroButtons, .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .heroButtons { margin-top: 14px; }
+    .controls { margin-top: 12px; }
+
+    button {
+      border: none;
+      cursor: pointer;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 800;
+      color: #0c130f;
+      background: linear-gradient(180deg, #ffe7a1, #f7c957);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+      transition: transform 0.12s ease, filter 0.12s ease;
+    }
+
+    button:hover { transform: translateY(-1px); filter: brightness(1.04); }
+    button.secondary {
+      color: var(--text);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: none;
+    }
+    button.danger {
+      background: linear-gradient(180deg, #ff9f9f, #ff6262);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+    }
+
+    .statGrid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .stat {
+      background: var(--panel-2);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .statValue {
+      font-size: 1.3rem;
+      font-weight: 800;
+    }
+
+    .debt { color: var(--red); }
+    .money { color: var(--green); }
+    .heat { color: var(--blue); }
+
+    .meterWrap { margin-top: 4px; }
+
+    .meterFill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      transition: width 0.25s ease;
+      background: linear-gradient(90deg, #f4b64a, #ff6d57);
+    }
+
+    .meterFill.heatBar {
+      background: linear-gradient(90deg, #4fb5ff, #915dff);
+    }
+
+    .perks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .perk {
+      padding: 7px 10px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+      font-size: 0.84rem;
+      color: var(--gold-2);
+    }
+
+    .gamesHeader {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .gamesGrid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .gameCard {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 160px;
+    }
+
+    .gameIcon { font-size: 1.8rem; }
+    .gameName {
+      font-size: 0.98rem;
+      font-weight: 900;
+      color: var(--gold-2);
+    }
+
+    .gameDesc {
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 0.9rem;
+      flex: 1;
+    }
+
+    .gameMeta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      font-size: 0.78rem;
+      border-radius: 999px;
+      padding: 6px 9px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+    }
+
+    .boardHeader h2, .eventsPanel h2 {
+      margin: 0 0 10px;
+      font-size: 1.25rem;
+      color: var(--gold-2);
+    }
+
+    .tableSub {
+      color: var(--muted);
+      margin-bottom: 16px;
+      line-height: 1.5;
+      position: relative;
+      z-index: 1;
+    }
+
+    .betRow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 14px 0 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    input[type="range"] { width: 220px; }
+
+    .betBadge {
+      background: rgba(255,255,255,0.08);
+      padding: 8px 12px;
+      border-radius: 12px;
+      min-width: 110px;
+      text-align: center;
+      font-weight: 800;
+      color: var(--gold-2);
+    }
+
+    #gameBoard {
+      position: relative;
+      z-index: 1;
+    }
+
+    .cardsRow, .slotsRow, .diceRow, .bossRow {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 14px 0 10px;
+    }
+
+    .card {
+      width: 74px;
+      height: 104px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #fff, #ece7dd);
+      color: #181818;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px;
+      font-weight: 900;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    .card.red { color: #d62839; }
+    .cardBack {
+      background: linear-gradient(135deg, #1d3557, #274c77);
+      color: #eef;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+    .slot {
+      width: 78px;
+      height: 78px;
+      background: rgba(255,255,255,0.08);
+      border: 2px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      font-size: 1.9rem;
+      box-shadow: inset 0 0 18px rgba(0,0,0,0.15);
+    }
+
+    .die {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fff, #eaeaea);
+      color: #111;
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+      font-weight: 900;
+      box-shadow: 0 12px 20px rgba(0,0,0,0.18);
+    }
+
+    .bigNumber {
+      font-size: clamp(2rem, 6vw, 4rem);
+      font-weight: 1000;
+      color: var(--gold-2);
+      line-height: 1;
+      margin: 14px 0 8px;
+    }
+
+    .warning {
+      color: #ffc1c1;
+      background: rgba(255, 90, 90, 0.1);
+      border: 1px solid rgba(255, 90, 90, 0.2);
+      padding: 10px 12px;
+      border-radius: 14px;
+      margin-top: 12px;
+    }
+
+    .storyBox {
+      background: rgba(255,255,255,0.04);
+      border-radius: 16px;
+      padding: 14px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .eventLog {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      padding-right: 4px;
+    }
+
+    .logEntry {
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.05);
+      line-height: 1.45;
+      font-size: 0.93rem;
+    }
+
+    .logEntry.good { border-left: 4px solid var(--green); }
+    .logEntry.bad { border-left: 4px solid var(--red); }
+    .logEntry.info { border-left: 4px solid var(--blue); }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 30;
+    }
+
+    .overlay.show { display: flex; }
+
+    .modal {
+      width: min(760px, 100%);
+      background: linear-gradient(180deg, #122018, #0d1712);
+      border: 1px solid rgba(248, 211, 106, 0.2);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .modal h2 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+      color: var(--gold-2);
+    }
+
+    .modal p {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .resultLine {
+      font-size: 1.1rem;
+      margin: 12px 0;
+    }
+
+    @media (max-width: 1180px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto auto;
+        grid-template-areas:
+          "timer"
+          "stats"
+          "games"
+          "board"
+          "events";
+      }
+
+      .gamesGrid { grid-template-columns: 1fr 1fr; }
+      .boardPanel { min-height: 480px; }
+    }
+
+    @media (max-width: 760px) {
+      .gamesGrid { grid-template-columns: 1fr; }
+      .timerShell { grid-template-columns: 1fr; }
+      .heroButtons { flex-direction: column; }
+      .controls { flex-direction: column; align-items: stretch; }
+      input[type="range"] { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="panel timerPanel">
+      <div>
+        <h1 class="blockTitle">Temporizador</h1>
+        <p class="text">Todo gira alrededor del tiempo. Cuanto más baje el reloj, más peligroso se vuelve el casino. Vigílalo antes de arriesgar una última jugada.</p>
+      </div>
+      <div class="timerShell">
+        <div class="timerRingWrap">
+          <svg class="timerSvg" viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="timerTrack" cx="60" cy="60" r="48"></circle>
+            <circle class="timerProgress" id="timerProgress" cx="60" cy="60" r="48"></circle>
+          </svg>
+          <div class="timerCenter">
+            <div class="timerLabel">TIEMPO</div>
+            <div class="timerMain" id="timerMain">150</div>
+            <div class="timerSeconds">segundos</div>
+          </div>
+        </div>
+        <div>
+          <div class="timerBarLabel"><span>Cuenta atrás</span><span id="timerBarText">150s</span></div>
+          <div class="timerBar"><div class="timerBarFill" id="timerBarFill"></div></div>
+          <div class="heroButtons">
+            <button id="startRunBtn">Empezar partida</button>
+            <button class="secondary" id="resetRunBtn">Reiniciar</button>
+            <button class="danger" id="cashOutBtn">Pagar deuda ahora</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel statsPanel">
+      <div>
+        <h2 class="blockTitle" style="font-size:1.45rem;">Estado</h2>
+        <p class="text">Controla el dinero, la deuda y la presión. Si juegas con cabeza puedes remontar; si te cebas, la casa te aplasta.</p>
+      </div>
+
+      <div class="statGrid">
+        <div class="stat">
+          <div class="miniTitle">Dinero</div>
+          <div class="statValue money" id="moneyStat">$0</div>
+        </div>
+        <div class="stat">
+          <div class="miniTitle">Deuda</div>
+          <div class="statValue debt" id="debtStat">$0</div>
+        </div>
+        <div class="stat">
+          <div class="miniTitle">Presión</div>
+          <div class="statValue heat" id="heatStat">0%</div>
+        </div>
+      </div>
+
+      <div class="meterWrap">
+        <div class="meterLabel"><span>Progreso de pago</span><span id="debtProgressText">0%</span></div>
+        <div class="meter"><div class="meterFill" id="debtBar"></div></div>
+      </div>
+
+      <div class="meterWrap">
+        <div class="meterLabel"><span>Presión del casino</span><span id="heatText">0%</span></div>
+        <div class="meter"><div class="meterFill heatBar" id="heatBar"></div></div>
+      </div>
+
+      <div>
+        <div class="miniTitle">Mejoras activas</div>
+        <div class="perks" id="perkList"></div>
+      </div>
+
+      <div>
+        <div class="miniTitle">Tienda del salón VIP</div>
+        <div class="controls">
+          <button class="secondary" id="buyClockBtn">+15s ($250)</button>
+          <button class="secondary" id="buyLuckBtn">Suerte +1 ($300)</button>
+          <button class="secondary" id="buyShieldBtn">Escudo ($400)</button>
+          <button class="secondary" id="buyDebtCutBtn">Quitar deuda ($500)</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel gamesPanel">
+      <div class="gamesHeader">
+        <div>
+          <h2 class="blockTitle" style="font-size:1.45rem; margin-bottom:4px;">Juegos</h2>
+          <p class="text">Elige mesa. Cada acción consume tiempo, así que no te entretengas.</p>
+        </div>
+      </div>
+      <div class="gamesGrid">
+        <article class="gameCard">
+          <div class="gameIcon">🃏</div>
+          <div class="gameName">Blackjack rápido</div>
+          <div class="gameDesc">Acércate a 21 sin pasarte. Riesgo medio y buen control.</div>
+          <div class="gameMeta"><span class="chip">Control</span><span class="chip">x2 aprox.</span></div>
+          <button class="playBtn" data-game="blackjack">Jugar</button>
+        </article>
+
+        <article class="gameCard">
+          <div class="gameIcon">🎰</div>
+          <div class="gameName">Tragaperras</div>
+          <div class="gameDesc">Lo normal es rascar poco. Lo excepcional te puede salvar.</div>
+          <div class="gameMeta"><span class="chip">Caos</span><span class="chip">x0 a x5</span></div>
+          <button class="playBtn" data-game="slots">Jugar</button>
+        </article>
+
+        <article class="gameCard">
+          <div class="gameIcon">🎲</div>
+          <div class="gameName">Doble o nada</div>
+          <div class="gameDesc">Dos dados contra la banca. Muy rápido y volátil.</div>
+          <div class="gameMeta"><span class="chip">Riesgo alto</span><span class="chip">x0 o x2.4</span></div>
+          <button class="playBtn" data-game="dice">Jugar</button>
+        </article>
+
+        <article class="gameCard">
+          <div class="gameIcon">🎯</div>
+          <div class="gameName">Ruleta de color</div>
+          <div class="gameDesc">Rojo, negro o verde. Verde es una locura, pero paga enorme.</div>
+          <div class="gameMeta"><span class="chip">Apuesta pura</span><span class="chip">x2 / x14</span></div>
+          <button class="playBtn" data-game="roulette">Jugar</button>
+        </article>
+
+        <article class="gameCard">
+          <div class="gameIcon">🏇</div>
+          <div class="gameName">Carrera de caballos</div>
+          <div class="gameDesc">Escoge un caballo. Cuanto menos probable, más paga.</div>
+          <div class="gameMeta"><span class="chip">Predicción</span><span class="chip">x1.5 a x4.5</span></div>
+          <button class="playBtn" data-game="horses">Jugar</button>
+        </article>
+
+        <article class="gameCard">
+          <div class="gameIcon">💰</div>
+          <div class="gameName">Hi-Lo</div>
+          <div class="gameDesc">Adivina si la siguiente carta será mayor o menor y retírate a tiempo.</div>
+          <div class="gameMeta"><span class="chip">Racha</span><span class="chip">x1.8 por acierto</span></div>
+          <button class="playBtn" data-game="hilo">Jugar</button>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel boardPanel">
+      <div class="boardHeader">
+        <h2 id="tableTitle">Tablero de juego</h2>
+        <div class="tableSub" id="tableSub">Pulsa “Empezar partida” y después elige un juego. Cada acción consume tiempo. Si el reloj llega a cero, pierdes.</div>
+      </div>
+
+      <div class="betRow">
+        <label for="betRange">Apuesta</label>
+        <input type="range" id="betRange" min="25" max="500" step="25" value="50" />
+        <div class="betBadge" id="betValue">$50</div>
+      </div>
+
+      <div id="gameBoard"></div>
+    </section>
+
+    <aside class="panel eventsPanel">
+      <h2>Eventos</h2>
+      <div class="storyBox" id="storyBox">Una voz al fondo del casino te susurra: “Tienes 150 segundos para pagar lo que debes. Después vendrá el cobrador”. Aquí aparecerán los eventos de la partida y los cambios importantes.</div>
+      <div class="eventLog" id="eventLog"></div>
+    </aside>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2 id="overlayTitle">Resultado</h2>
+      <div class="resultLine" id="overlayText"></div>
+      <p id="overlaySub"></p>
+      <div class="controls">
+        <button id="overlayBtn">Seguir</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MAX_LEVELS = 8;
+
+    const state = {
+      runActive: false,
+      money: 300,
+      debt: 1200,
+      initialDebt: 1200,
+      timeLeft: 150,
+      maxTime: 150,
+      heat: 0,
+      luck: 0,
+      shield: 0,
+      clockLevel: 0,
+      playCostTime: 4,
+      log: [],
+      interval: null,
+      currentGame: null,
+      bj: null,
+      slots: null,
+      dice: null,
+      roulette: null,
+      horses: null,
+      hilo: null,
+      gameOver: false,
+      level: 1,
+      inShopPhase: false,
+      shopChoices: []
+    };
+
+    const el = {
+      moneyStat: document.getElementById('moneyStat'),
+      debtStat: document.getElementById('debtStat'),
+      heatStat: document.getElementById('heatStat'),
+      debtBar: document.getElementById('debtBar'),
+      debtProgressText: document.getElementById('debtProgressText'),
+      heatBar: document.getElementById('heatBar'),
+      heatText: document.getElementById('heatText'),
+      perkList: document.getElementById('perkList'),
+      eventLog: document.getElementById('eventLog'),
+      storyBox: document.getElementById('storyBox'),
+      tableTitle: document.getElementById('tableTitle'),
+      tableSub: document.getElementById('tableSub'),
+      board: document.getElementById('gameBoard'),
+      betRange: document.getElementById('betRange'),
+      betValue: document.getElementById('betValue'),
+      overlay: document.getElementById('overlay'),
+      overlayTitle: document.getElementById('overlayTitle'),
+      overlayText: document.getElementById('overlayText'),
+      overlaySub: document.getElementById('overlaySub'),
+      overlayBtn: document.getElementById('overlayBtn'),
+      startRunBtn: document.getElementById('startRunBtn'),
+      resetRunBtn: document.getElementById('resetRunBtn'),
+      cashOutBtn: document.getElementById('cashOutBtn'),
+      buyClockBtn: document.getElementById('buyClockBtn'),
+      buyLuckBtn: document.getElementById('buyLuckBtn'),
+      buyShieldBtn: document.getElementById('buyShieldBtn'),
+      buyDebtCutBtn: document.getElementById('buyDebtCutBtn'),
+      timerMain: document.getElementById('timerMain'),
+      timerBarText: document.getElementById('timerBarText'),
+      timerBarFill: document.getElementById('timerBarFill'),
+      timerProgress: document.getElementById('timerProgress')
+    };
+
+    function fmt(n) {
+      return '$' + Math.max(0, Math.floor(n)).toLocaleString('es-ES');
+    }
+
+    function rand(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function chance(p) {
+      return Math.random() < p;
+    }
+
+    function addLog(text, type = 'info') {
+      state.log.unshift({ text, type });
+      state.log = state.log.slice(0, 30);
+      renderLog();
+    }
+
+    function renderLog() {
+      el.eventLog.innerHTML = state.log.map(item => `<div class="logEntry ${item.type}">${item.text}</div>`).join('');
+    }
+
+    function renderPerks() {
+      const perks = [`Nivel ${state.level}`];
+      if (state.luck > 0) perks.push(`🍀 Suerte +${state.luck}`);
+      if (state.shield > 0) perks.push(`🛡️ Escudo x${state.shield}`);
+      if (state.clockLevel > 0) perks.push(`⏱️ Tiempo +${state.clockLevel}`);
+      if (!perks.length) perks.push('Sin mejoras');
+      el.perkList.innerHTML = perks.map(p => `<div class="perk">${p}</div>`).join('');
+    }
+
+    function currentLevelTime() {
+      return 150;
+    }
+
+    function debtForLevel(level) {
+      return Math.floor(1200 * Math.pow(1.55, level - 1));
+    }
+
+    function updateHUD() {
+      el.moneyStat.textContent = fmt(state.money);
+      el.debtStat.textContent = fmt(state.debt);
+      el.heatStat.textContent = Math.floor(state.heat) + '%';
+
+      const paid = state.initialDebt > 0 ? ((state.initialDebt - state.debt) / state.initialDebt) * 100 : 0;
+      el.debtBar.style.width = Math.max(0, Math.min(100, paid)) + '%';
+      el.debtProgressText.textContent = Math.max(0, Math.min(100, Math.floor(paid))) + '%';
+      el.heatBar.style.width = Math.max(0, Math.min(100, state.heat)) + '%';
+      el.heatText.textContent = Math.floor(state.heat) + '%';
+
+      const shownTime = Math.max(0, Math.ceil(state.timeLeft));
+      const timePct = state.maxTime > 0 ? Math.max(0, Math.min(100, (state.timeLeft / state.maxTime) * 100)) : 0;
+      const circumference = 301.59;
+      el.timerMain.textContent = shownTime;
+      el.timerBarText.textContent = shownTime + 's';
+      el.timerBarFill.style.width = timePct + '%';
+      el.timerProgress.style.strokeDashoffset = String(circumference * (1 - timePct / 100));
+      if (timePct > 50) {
+        el.timerProgress.style.stroke = '#59e39d';
+        el.timerBarFill.style.filter = 'none';
+      } else if (timePct > 25) {
+        el.timerProgress.style.stroke = '#f8d36a';
+        el.timerBarFill.style.filter = 'brightness(1.02)';
+      } else {
+        el.timerProgress.style.stroke = '#ff5f5f';
+        el.timerBarFill.style.filter = 'brightness(1.15)';
+      }
+
+      const maxBet = Math.max(25, Math.min(2000, Math.floor(state.money / 25) * 25 || 25));
+      el.betRange.max = maxBet;
+      if (+el.betRange.value > maxBet) el.betRange.value = maxBet;
+      el.betValue.textContent = fmt(+el.betRange.value);
+
+      const canAfford = amt => state.money >= amt && state.runActive && !state.gameOver && !state.inShopPhase;
+      el.buyClockBtn.disabled = !canAfford(250);
+      el.buyLuckBtn.disabled = !canAfford(300);
+      el.buyShieldBtn.disabled = !canAfford(400);
+      el.buyDebtCutBtn.disabled = !canAfford(500);
+      el.cashOutBtn.disabled = !state.runActive || state.gameOver || state.inShopPhase;
+      renderPerks();
+    }
+
+    function clearBoards() {
+      state.currentGame = null;
+      state.bj = null;
+      state.slots = null;
+      state.dice = null;
+      state.roulette = null;
+      state.horses = null;
+      state.hilo = null;
+    }
+
+    function resetState() {
+      clearInterval(state.interval);
+      state.runActive = false;
+      state.money = 300;
+      state.debt = 1200;
+      state.initialDebt = 1200;
+      state.timeLeft = 150;
+      state.maxTime = 150;
+      state.heat = 0;
+      state.luck = 0;
+      state.shield = 0;
+      state.clockLevel = 0;
+      state.playCostTime = 4;
+      state.log = [];
+      state.gameOver = false;
+      state.level = 1;
+      state.inShopPhase = false;
+      state.shopChoices = [];
+      clearBoards();
+      el.tableTitle.textContent = 'Tablero de juego';
+      el.tableSub.textContent = 'Paga la deuda actual. Cuando la liquides, entrarás en la tienda y podrás comprar una ventaja con tu dinero sobrante.';
+      el.board.innerHTML = '';
+      el.storyBox.textContent = 'Sistema estilo Balatro: empiezas con una deuda baja. Cuando la pagas por completo, compras una ventaja con tu dinero sobrante y pasas a una deuda mayor con el tiempo reiniciado.';
+      updateHUD();
+      renderLog();
+    }
+
+    function startRun() {
+      resetState();
+      state.runActive = true;
+      addLog('Empieza la run. Deuda inicial: ' + fmt(state.debt) + '.', 'info');
+      state.interval = setInterval(tick, 1000);
+      updateHUD();
+    }
+
+    function tick() {
+      if (!state.runActive || state.gameOver || state.inShopPhase) return;
+      state.timeLeft -= 1;
+      state.heat = Math.min(100, state.heat + 1.8);
+
+      if (state.heat >= 60 && chance(0.20)) triggerEvent();
+      if (state.heat >= 85 && chance(0.30)) triggerEvent(true);
+
+      if (state.timeLeft <= 0) {
+        state.timeLeft = 0;
+        loseRun('Se acabó el tiempo. La casa ha venido a cobrar.');
+      }
+
+      updateHUD();
+    }
+
+    function triggerEvent(brutal = false) {
+      if (state.inShopPhase) return;
+      const events = brutal ? ['tax', 'freeze', 'collector'] : ['tip', 'panic', 'bonus'];
+      const event = events[rand(0, events.length - 1)];
+
+      if (event === 'tax') {
+        const loss = Math.min(state.money, 120 + rand(0, 130));
+        if (state.shield > 0) {
+          state.shield--;
+          addLog('Tu escudo ha bloqueado una comisión abusiva del casino.', 'good');
+        } else {
+          state.money -= loss;
+          addLog('Comisión sorpresa: pierdes ' + fmt(loss) + '.', 'bad');
+        }
+      }
+
+      if (event === 'freeze') {
+        const t = 4 + rand(0, 4);
+        state.timeLeft -= t;
+        addLog('Seguridad del casino te retiene. Pierdes ' + t + ' segundos.', 'bad');
+      }
+
+      if (event === 'collector') {
+        const debtAdd = 120 + rand(0, 180);
+        state.debt += debtAdd;
+        state.initialDebt += Math.floor(debtAdd * 0.25);
+        addLog('Intereses extra: la deuda aumenta en ' + fmt(debtAdd) + '.', 'bad');
+      }
+
+      if (event === 'tip') {
+        const gain = 90 + rand(0, 110) + state.luck * 15;
+        state.money += gain;
+        addLog('Un camarero te pasa una pista buena. Ganas ' + fmt(gain) + '.', 'good');
+      }
+
+      if (event === 'panic') {
+        state.heat = Math.max(0, state.heat - 12);
+        addLog('Cambias de mesa y despistas a la casa. La presión baja.', 'good');
+      }
+
+      if (event === 'bonus') {
+        const time = 5 + rand(0, 5);
+        state.timeLeft += time;
+        state.maxTime = Math.max(state.maxTime, state.timeLeft);
+        addLog('Encuentras una ficha de tiempo. Recuperas ' + time + ' segundos.', 'good');
+      }
+
+      updateHUD();
+    }
+
+    function spendTime(base = state.playCostTime) {
+      if (state.inShopPhase) return;
+      state.timeLeft -= Math.max(1, base - Math.min(2, state.clockLevel));
+      if (state.timeLeft <= 0) {
+        state.timeLeft = 0;
+        loseRun('Te has quedado sin tiempo en plena jugada.');
+      }
+    }
+
+    function ensureBet() {
+      if (!state.runActive || state.gameOver || state.inShopPhase) return null;
+      const bet = +el.betRange.value;
+      if (bet > state.money) {
+        addLog('No tienes suficiente dinero para apostar ' + fmt(bet) + '.', 'bad');
+        return null;
+      }
+      return bet;
+    }
+
+    function payDebt(amount) {
+      const payment = Math.min(amount, state.money, state.debt);
+      state.money -= payment;
+      state.debt -= payment;
+      addLog('Pagas ' + fmt(payment) + ' de la deuda.', 'good');
+      if (state.debt <= 0) {
+        finishDebt();
+      }
+    }
+
+    function loseRun(reason) {
+      clearInterval(state.interval);
+      state.gameOver = true;
+      state.runActive = false;
+      state.inShopPhase = false;
+      showOverlay('Has perdido', reason, 'La deuda pendiente era ' + fmt(state.debt) + '. Reinicia e inténtalo con otra estrategia.');
+      addLog(reason, 'bad');
+      updateHUD();
+    }
+
+    function winRun() {
+      clearInterval(state.interval);
+      state.gameOver = true;
+      state.runActive = false;
+      state.inShopPhase = false;
+      showOverlay('Has ganado', 'Has superado todas las deudas del casino.', 'Nivel final: ' + state.level + ' · Dinero sobrante: ' + fmt(state.money));
+      addLog('Has limpiado todas las deudas. Victoria total.', 'good');
+      updateHUD();
+    }
+
+    function showOverlay(title, text, sub) {
+      el.overlayTitle.textContent = title;
+      el.overlayText.textContent = text;
+      el.overlaySub.textContent = sub;
+      el.overlay.classList.add('show');
+    }
+
+    function hideOverlay() {
+      el.overlay.classList.remove('show');
+    }
+
+    function makeCard(value, suit) {
+      const symbols = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' };
+      const isRed = suit === 'hearts' || suit === 'diamonds';
+      return { value, suit, symbol: symbols[suit], red: isRed };
+    }
+
+    function drawRandomCard() {
+      const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+      const suits = ['hearts','diamonds','clubs','spades'];
+      return makeCard(values[rand(0, values.length - 1)], suits[rand(0, suits.length - 1)]);
+    }
+
+    function handValue(hand) {
+      let total = 0;
+      let aces = 0;
+      for (const card of hand) {
+        if (card.value === 'A') {
+          total += 11;
+          aces++;
+        } else if (['J','Q','K'].includes(card.value)) {
+          total += 10;
+        } else {
+          total += Number(card.value);
+        }
+      }
+      while (total > 21 && aces > 0) {
+        total -= 10;
+        aces--;
+      }
+      return total;
+    }
+
+    function renderCard(card, hidden = false) {
+      if (hidden) return `<div class="card cardBack">?</div>`;
+      return `<div class="card ${card.red ? 'red' : ''}"><div>${card.value}${card.symbol}</div><div style="font-size:2rem;align-self:center;">${card.symbol}</div><div style="align-self:flex-end;">${card.value}${card.symbol}</div></div>`;
+    }
+
+    function openGame(game) {
+      if (!state.runActive || state.gameOver || state.inShopPhase) {
+        addLog('Ahora mismo no puedes abrir una mesa.', 'info');
+        return;
+      }
+      state.currentGame = game;
+      if (game === 'blackjack') renderBlackjack(true);
+      if (game === 'slots') renderSlots(true);
+      if (game === 'dice') renderDice(true);
+      if (game === 'roulette') renderRoulette(true);
+      if (game === 'horses') renderHorses(true);
+      if (game === 'hilo') renderHilo(true);
+    }
+
+    function renderBlackjack(fresh = false) {
+      el.tableTitle.textContent = 'Blackjack rápido';
+      el.tableSub.textContent = 'Acércate a 21. Puedes plantarte o pedir. Si ganas, cobras bien; si empatas, recuperas tu apuesta.';
+      if (fresh || !state.bj) state.bj = { active: false, player: [], dealer: [], bet: 0, finished: false };
+      const bj = state.bj;
+      const playerVal = handValue(bj.player || []);
+      const dealerVisibleVal = bj.finished ? handValue(bj.dealer || []) : handValue((bj.dealer || []).slice(0,1));
+
+      el.board.innerHTML = `
+        <div><strong>Crupier</strong> ${bj.dealer?.length ? '(' + dealerVisibleVal + ')' : ''}</div>
+        <div class="cardsRow">${(bj.dealer || []).map((c, i) => renderCard(c, !bj.finished && i === 1)).join('')}</div>
+        <div style="margin-top:12px;"><strong>Tú</strong> ${bj.player?.length ? '(' + playerVal + ')' : ''}</div>
+        <div class="cardsRow">${(bj.player || []).map(c => renderCard(c)).join('')}</div>
+        <div class="warning">Apuesta actual: ${fmt(bj.bet || 0)}</div>
+        <div class="controls">
+          <button id="bjDealBtn">Repartir</button>
+          <button class="secondary" id="bjHitBtn" ${!bj.active || bj.finished ? 'disabled' : ''}>Pedir</button>
+          <button class="secondary" id="bjStandBtn" ${!bj.active || bj.finished ? 'disabled' : ''}>Plantarse</button>
+        </div>
+      `;
+
+      document.getElementById('bjDealBtn').onclick = blackjackDeal;
+      document.getElementById('bjHitBtn').onclick = blackjackHit;
+      document.getElementById('bjStandBtn').onclick = blackjackStand;
+    }
+
+    function blackjackDeal() {
+      const bet = ensureBet();
+      if (!bet) return;
+      state.money -= bet;
+      spendTime(4);
+      if (state.gameOver) return;
+      state.bj = {
+        active: true,
+        finished: false,
+        bet,
+        player: [drawRandomCard(), drawRandomCard()],
+        dealer: [drawRandomCard(), drawRandomCard()]
+      };
+      addLog('Entras en Blackjack apostando ' + fmt(bet) + '.', 'info');
+      if (handValue(state.bj.player) === 21) blackjackStand(true);
+      renderBlackjack();
+      updateHUD();
+    }
+
+    function blackjackHit() {
+      if (!state.bj?.active || state.bj.finished) return;
+      state.bj.player.push(drawRandomCard());
+      spendTime(3);
+      if (state.gameOver) return;
+      const total = handValue(state.bj.player);
+      if (total > 21) {
+        state.bj.finished = true;
+        state.bj.active = false;
+        state.heat = Math.min(100, state.heat + 8);
+        addLog('Te pasas en Blackjack. Pierdes ' + fmt(state.bj.bet) + '.', 'bad');
+      }
+      renderBlackjack();
+      updateHUD();
+    }
+
+    function blackjackStand(auto = false) {
+      if (!state.bj?.bet || state.bj.finished) return;
+      if (!auto) spendTime(3);
+      if (state.gameOver) return;
+      const bj = state.bj;
+      bj.finished = true;
+      bj.active = false;
+      while (handValue(bj.dealer) < 17 - (state.luck > 1 ? 1 : 0)) {
+        bj.dealer.push(drawRandomCard());
+      }
+      const p = handValue(bj.player);
+      const d = handValue(bj.dealer);
+      let win = 0;
+      if (d > 21 || p > d) {
+        const multi = p === 21 && bj.player.length === 2 ? 2.4 : 2.0 + state.luck * 0.05;
+        win = Math.floor(bj.bet * multi);
+        state.money += win;
+        state.heat = Math.max(0, state.heat - 3);
+        addLog('Ganas en Blackjack y cobras ' + fmt(win) + '.', 'good');
+      } else if (p === d) {
+        state.money += bj.bet;
+        addLog('Empate en Blackjack. Recuperas tu apuesta.', 'info');
+      } else {
+        state.heat = Math.min(100, state.heat + 6);
+        addLog('El crupier te gana en Blackjack.', 'bad');
+      }
+      renderBlackjack();
+      updateHUD();
+    }
+
+    function renderSlots(fresh = false) {
+      el.tableTitle.textContent = 'Tragaperras';
+      el.tableSub.textContent = 'Tres rodillos. Lo normal es sobrevivir a duras penas. Lo excepcional cambia toda la partida.';
+      if (fresh || !state.slots) state.slots = { result: ['❔', '❔', '❔'], lastWin: 0 };
+      const s = state.slots;
+      el.board.innerHTML = `
+        <div class="slotsRow">${s.result.map(r => `<div class="slot">${r}</div>`).join('')}</div>
+        <div class="warning">Último premio: ${fmt(s.lastWin || 0)}</div>
+        <div class="controls"><button id="slotsSpinBtn">Girar</button></div>
+      `;
+      document.getElementById('slotsSpinBtn').onclick = slotsSpin;
+    }
+
+    function slotsSpin() {
+      const bet = ensureBet();
+      if (!bet) return;
+      const icons = ['🍒','🍋','7','💎','🔔','🍀'];
+      state.money -= bet;
+      spendTime(4);
+      if (state.gameOver) return;
+      const luckShift = Math.min(0.12, state.luck * 0.02);
+      const rollIcon = () => {
+        const r = Math.random();
+        if (r < 0.10 + luckShift) return '💎';
+        if (r < 0.22 + luckShift) return '7';
+        if (r < 0.38 + luckShift) return '🍀';
+        return icons[rand(0, 1)];
+      };
+      const result = [rollIcon(), rollIcon(), rollIcon()];
+      state.slots.result = result;
+      let multi = 0;
+      if (result[0] === result[1] && result[1] === result[2]) {
+        if (result[0] === '💎') multi = 5.0;
+        else if (result[0] === '7') multi = 4.0;
+        else if (result[0] === '🍀') multi = 3.0;
+        else multi = 2.3;
+      } else if (new Set(result).size === 2) {
+        multi = 1.2;
+      } else if (result.includes('💎') && result.includes('7')) {
+        multi = 1.7;
+      }
+      const win = Math.floor(bet * multi);
+      state.slots.lastWin = win;
+      if (win > 0) {
+        state.money += win;
+        addLog('La tragaperras paga ' + fmt(win) + ' con ' + result.join(' ') + '.', 'good');
+        state.heat = Math.max(0, state.heat - 2);
+      } else {
+        addLog('La tragaperras te traga ' + fmt(bet) + '.', 'bad');
+        state.heat = Math.min(100, state.heat + 5);
+      }
+      renderSlots();
+      updateHUD();
+    }
+
+    function renderDice(fresh = false) {
+      el.tableTitle.textContent = 'Doble o nada';
+      el.tableSub.textContent = 'Lanzas dos dados contra la banca. Si tu suma es mayor, cobras. Si sacas dobles altos, premio extra.';
+      if (fresh || !state.dice) state.dice = { player: ['?','?'], enemy: ['?','?'], lastWin: 0 };
+      const d = state.dice;
+      el.board.innerHTML = `
+        <div><strong>Tú</strong></div>
+        <div class="diceRow">${d.player.map(v => `<div class="die">${v}</div>`).join('')}</div>
+        <div><strong>Banca</strong></div>
+        <div class="diceRow">${d.enemy.map(v => `<div class="die">${v}</div>`).join('')}</div>
+        <div class="warning">Último premio: ${fmt(d.lastWin || 0)}</div>
+        <div class="controls"><button id="diceRollBtn">Lanzar</button></div>
+      `;
+      document.getElementById('diceRollBtn').onclick = diceRoll;
+    }
+
+    function diceRoll() {
+      const bet = ensureBet();
+      if (!bet) return;
+      state.money -= bet;
+      spendTime(3);
+      if (state.gameOver) return;
+      const p1 = rand(1,6), p2 = rand(1,6), e1 = rand(1,6), e2 = rand(1,6);
+      const ps = p1 + p2 + state.luck * 0.15;
+      const es = e1 + e2;
+      state.dice.player = [p1, p2];
+      state.dice.enemy = [e1, e2];
+      let multi = 0;
+      if (ps > es) multi = (p1 === p2 && p1 >= 4) ? 2.4 : 1.9;
+      else if (Math.floor(ps) === es) multi = 1.0;
+      const win = Math.floor(bet * multi);
+      state.dice.lastWin = win;
+      if (win > 0) {
+        state.money += win;
+        addLog(`Ganas a los dados (${p1}+${p2} contra ${e1}+${e2}) y cobras ${fmt(win)}.`, 'good');
+        state.heat = Math.max(0, state.heat - 1);
+      } else {
+        addLog(`Pierdes a los dados (${p1}+${p2} contra ${e1}+${e2}).`, 'bad');
+        state.heat = Math.min(100, state.heat + 6);
+      }
+      renderDice();
+      updateHUD();
+    }
+
+    function renderRoulette(fresh = false) {
+      el.tableTitle.textContent = 'Ruleta de color';
+      el.tableSub.textContent = 'Elige un color y deja que gire. Rojo o negro doblan. Verde casi nunca sale, pero revienta la banca.';
+      if (fresh || !state.roulette) state.roulette = { result: '❔', lastWin: 0 };
+      const r = state.roulette;
+      el.board.innerHTML = `
+        <div class="bigNumber">${r.result}</div>
+        <div class="warning">Último premio: ${fmt(r.lastWin || 0)}</div>
+        <div class="controls">
+          <button id="rouletteRedBtn">Rojo</button>
+          <button class="secondary" id="rouletteBlackBtn">Negro</button>
+          <button class="danger" id="rouletteGreenBtn">Verde</button>
+        </div>
+      `;
+      document.getElementById('rouletteRedBtn').onclick = () => rouletteSpin('red');
+      document.getElementById('rouletteBlackBtn').onclick = () => rouletteSpin('black');
+      document.getElementById('rouletteGreenBtn').onclick = () => rouletteSpin('green');
+    }
+
+    function rouletteSpin(choice) {
+      const bet = ensureBet();
+      if (!bet) return;
+      state.money -= bet;
+      spendTime(3);
+      if (state.gameOver) return;
+      const pool = [];
+      for (let i = 0; i < 9; i++) pool.push('red');
+      for (let i = 0; i < 9; i++) pool.push('black');
+      pool.push('green');
+      for (let i = 0; i < state.luck; i++) pool.push(choice);
+      const result = pool[rand(0, pool.length - 1)];
+      state.roulette.result = result === 'red' ? '🔴' : result === 'black' ? '⚫' : '🟢';
+      const multi = choice === result ? (choice === 'green' ? 14 : 2) : 0;
+      const win = Math.floor(bet * multi);
+      state.roulette.lastWin = win;
+      if (win > 0) {
+        state.money += win;
+        addLog('La ruleta cae en ' + result + '. Cobras ' + fmt(win) + '.', 'good');
+        state.heat = Math.max(0, state.heat - 2);
+      } else {
+        addLog('La ruleta cae en ' + result + ' y fallas la apuesta.', 'bad');
+        state.heat = Math.min(100, state.heat + 5);
+      }
+      renderRoulette();
+      updateHUD();
+    }
+
+    function renderHorses(fresh = false) {
+      el.tableTitle.textContent = 'Carrera de caballos';
+      el.tableSub.textContent = 'Escoge caballo y resuelve una carrera express. Más premio si eliges al tapado.';
+      if (fresh || !state.horses) state.horses = { result: '—', lastWin: 0 };
+      const h = state.horses;
+      el.board.innerHTML = `
+        <div class="bossRow">
+          <div class="slot">🐎1</div>
+          <div class="slot">🐎2</div>
+          <div class="slot">🐎3</div>
+        </div>
+        <div class="warning">Ganador anterior: ${h.result} · Último premio: ${fmt(h.lastWin || 0)}</div>
+        <div class="controls">
+          <button id="horse1Btn">Caballo 1</button>
+          <button class="secondary" id="horse2Btn">Caballo 2</button>
+          <button class="danger" id="horse3Btn">Caballo 3</button>
+        </div>
+      `;
+      document.getElementById('horse1Btn').onclick = () => raceHorse(1);
+      document.getElementById('horse2Btn').onclick = () => raceHorse(2);
+      document.getElementById('horse3Btn').onclick = () => raceHorse(3);
+    }
+
+    function raceHorse(choice) {
+      const bet = ensureBet();
+      if (!bet) return;
+      state.money -= bet;
+      spendTime(4);
+      if (state.gameOver) return;
+      const weights = [0.46, 0.34, 0.20];
+      weights[Math.max(0, choice - 1)] += state.luck * 0.03;
+      const roll = Math.random() * weights.reduce((a, b) => a + b, 0);
+      let acc = 0, winner = 1;
+      for (let i = 0; i < weights.length; i++) {
+        acc += weights[i];
+        if (roll <= acc) { winner = i + 1; break; }
+      }
+      let multi = 0;
+      if (winner === choice) multi = choice === 1 ? 1.5 : choice === 2 ? 2.4 : 4.5;
+      const win = Math.floor(bet * multi);
+      state.horses.result = '🐎' + winner;
+      state.horses.lastWin = win;
+      if (win > 0) {
+        state.money += win;
+        addLog('Tu caballo gana la carrera. Cobras ' + fmt(win) + '.', 'good');
+        state.heat = Math.max(0, state.heat - 1);
+      } else {
+        addLog('Tu caballo pierde la carrera.', 'bad');
+        state.heat = Math.min(100, state.heat + 4);
+      }
+      renderHorses();
+      updateHUD();
+    }
+
+    function renderHilo(fresh = false) {
+      el.tableTitle.textContent = 'Hi-Lo';
+      el.tableSub.textContent = 'Recibes una carta visible. Decide si la siguiente será mayor o menor. Cada acierto aumenta el bote. Puedes retirarte.';
+      if (fresh || !state.hilo) {
+        state.hilo = { active: false, current: null, pot: 0, bet: 0, streak: 0, resultText: 'Sin ronda iniciada' };
+      }
+      const h = state.hilo;
+      el.board.innerHTML = `
+        <div style="margin-bottom:8px;"><strong>Estado:</strong> ${h.resultText}</div>
+        <div class="cardsRow">${h.current ? renderCard(h.current) : '<div class="card cardBack">?</div>'}</div>
+        <div class="warning">Bote actual: ${fmt(h.pot || 0)} · Racha: ${h.streak || 0}</div>
+        <div class="controls">
+          <button id="hiloStartBtn">Iniciar ronda</button>
+          <button class="secondary" id="hiloHigherBtn" ${!h.active ? 'disabled' : ''}>Mayor</button>
+          <button class="secondary" id="hiloLowerBtn" ${!h.active ? 'disabled' : ''}>Menor</button>
+          <button id="hiloCashBtn" ${!h.active ? 'disabled' : ''}>Retirarse</button>
+        </div>
+      `;
+      document.getElementById('hiloStartBtn').onclick = hiloStart;
+      document.getElementById('hiloHigherBtn').onclick = () => hiloGuess('higher');
+      document.getElementById('hiloLowerBtn').onclick = () => hiloGuess('lower');
+      document.getElementById('hiloCashBtn').onclick = hiloCash;
+    }
+
+    function cardRank(card) {
+      const map = { A: 1, J: 11, Q: 12, K: 13 };
+      return map[card.value] || Number(card.value);
+    }
+
+    function hiloStart() {
+      const bet = ensureBet();
+      if (!bet) return;
+      state.money -= bet;
+      spendTime(2);
+      if (state.gameOver) return;
+      state.hilo = {
+        active: true,
+        current: drawRandomCard(),
+        pot: Math.floor(bet * 1.15),
+        bet,
+        streak: 0,
+        resultText: 'Ronda iniciada'
+      };
+      addLog('Empieza una ronda de Hi-Lo con ' + fmt(bet) + '.', 'info');
+      renderHilo();
+      updateHUD();
+    }
+
+    function hiloGuess(dir) {
+      const h = state.hilo;
+      if (!h?.active) return;
+      spendTime(2);
+      if (state.gameOver) return;
+      const next = drawRandomCard();
+      const currentRank = cardRank(h.current);
+      const nextRank = cardRank(next);
+      const correct = dir === 'higher' ? nextRank > currentRank : nextRank < currentRank;
+      h.current = next;
+      if (correct) {
+        h.streak += 1;
+        h.pot = Math.floor(h.pot * (1.8 + state.luck * 0.03));
+        h.resultText = 'Acierto. Puedes seguir o retirarte.';
+        addLog('Aciertas en Hi-Lo. El bote sube a ' + fmt(h.pot) + '.', 'good');
+        state.heat = Math.max(0, state.heat - 1);
+      } else {
+        h.active = false;
+        h.pot = 0;
+        h.resultText = 'Has fallado la predicción';
+        addLog('Fallas en Hi-Lo y pierdes la ronda.', 'bad');
+        state.heat = Math.min(100, state.heat + 6);
+      }
+      renderHilo();
+      updateHUD();
+    }
+
+    function hiloCash() {
+      const h = state.hilo;
+      if (!h?.active) return;
+      h.active = false;
+      state.money += h.pot;
+      addLog('Te retiras de Hi-Lo y cobras ' + fmt(h.pot) + '.', 'good');
+      h.resultText = 'Te has retirado con beneficio';
+      renderHilo();
+      updateHUD();
+    }
+
+    function buyUpgrade(type) {
+      if (!state.runActive || state.gameOver || state.inShopPhase) return;
+      if (type === 'clock' && state.money >= 250) {
+        state.money -= 250;
+        state.timeLeft += 15;
+        state.maxTime += 15;
+        state.clockLevel += 1;
+        addLog('Compras tiempo extra: +15 segundos.', 'good');
+      }
+      if (type === 'luck' && state.money >= 300) {
+        state.money -= 300;
+        state.luck += 1;
+        addLog('Compras suerte. Algunas probabilidades mejoran.', 'good');
+      }
+      if (type === 'shield' && state.money >= 400) {
+        state.money -= 400;
+        state.shield += 1;
+        addLog('Compras un escudo contra un evento negativo.', 'good');
+      }
+      if (type === 'debt' && state.money >= 500) {
+        state.money -= 500;
+        const cut = 350 + state.luck * 25;
+        state.debt = Math.max(0, state.debt - cut);
+        addLog('Sobornas a contabilidad y reduces la deuda en ' + fmt(cut) + '.', 'good');
+        if (state.debt <= 0) finishDebt();
+      }
+      updateHUD();
+    }
+
+    function tryCashOut() {
+      if (!state.runActive || state.gameOver || state.inShopPhase) return;
+      if (state.money <= 0) {
+        addLog('No tienes efectivo para pagar nada.', 'bad');
+        return;
+      }
+      payDebt(state.money);
+      updateHUD();
+    }
+
+    function shopPool() {
+      return [
+        { id: 'luck', title: '🍀 Suerte +1', desc: 'Mejora ligeramente tus probabilidades.', price: 250, apply: () => state.luck += 1 },
+        { id: 'luck2', title: '🍀🍀 Suerte +2', desc: 'Una mejora fuerte para las tiradas.', price: 430, apply: () => state.luck += 2 },
+        { id: 'shield', title: '🛡️ Escudo', desc: 'Bloquea un evento negativo.', price: 300, apply: () => state.shield += 1 },
+        { id: 'time', title: '⏱️ +15 s por nivel', desc: 'Cada nueva deuda empezará con más tiempo.', price: 380, apply: () => state.clockLevel += 1 },
+        { id: 'cash', title: '💸 Colchón', desc: 'Recibes dinero instantáneo.', price: 200, apply: () => state.money += 320 },
+        { id: 'calm', title: '❄️ Presión -20%', desc: 'Baja la presión del casino.', price: 220, apply: () => state.heat = Math.max(0, state.heat - 20) }
+      ];
+    }
+
+    function shuffled(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function finishDebt() {
+      addLog('Has pagado por completo la deuda del nivel ' + state.level + '.', 'good');
+      if (state.level >= MAX_LEVELS) {
+        winRun();
+        return;
+      }
+      enterShopPhase();
+    }
+
+    function enterShopPhase() {
+      state.inShopPhase = true;
+      state.shopChoices = shuffled(shopPool()).slice(0, 3);
+      el.tableTitle.textContent = 'Tienda entre deudas';
+      el.tableSub.textContent = 'Has limpiado la deuda. Compra una ventaja con el dinero sobrante o sáltala y pasa a la siguiente deuda.';
+      el.board.innerHTML = `
+        <div class="gamesGrid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+          ${state.shopChoices.map((item, index) => `
+            <article class="gameCard">
+              <div class="gameIcon">🛍️</div>
+              <div class="gameName">${item.title}</div>
+              <div class="gameDesc">${item.desc}</div>
+              <div class="gameMeta"><span class="chip">Precio ${fmt(item.price)}</span></div>
+              <button ${state.money < item.price ? 'disabled' : ''} onclick="buyShopUpgrade(${index})">Comprar</button>
+            </article>
+          `).join('')}
+        </div>
+        <div class="controls" style="margin-top:16px;">
+          <button class="secondary" onclick="skipShopAndContinue()">Continuar sin comprar</button>
+        </div>
+      `;
+      updateHUD();
+    }
+
+    function buyShopUpgrade(index) {
+      if (!state.inShopPhase) return;
+      const item = state.shopChoices[index];
+      if (!item || state.money < item.price) return;
+      state.money -= item.price;
+      item.apply();
+      addLog('Compras en la tienda: ' + item.title + ' por ' + fmt(item.price) + '.', 'good');
+      continueToNextDebt();
+    }
+
+    function skipShopAndContinue() {
+      if (!state.inShopPhase) return;
+      addLog('Saltas la tienda y guardas el dinero sobrante.', 'info');
+      continueToNextDebt();
+    }
+
+    function continueToNextDebt() {
+      state.level += 1;
+      state.inShopPhase = false;
+      state.shopChoices = [];
+      state.debt = debtForLevel(state.level);
+      state.initialDebt = state.debt;
+      state.timeLeft = currentLevelTime() + state.clockLevel * 15;
+      state.maxTime = state.timeLeft;
+      state.heat = Math.max(0, state.heat - 15);
+      clearBoards();
+      el.tableTitle.textContent = 'Tablero de juego';
+      el.tableSub.textContent = 'Nivel ' + state.level + '. Nueva deuda: ' + fmt(state.debt) + '. El tiempo se ha reiniciado.';
+      el.board.innerHTML = '';
+      addLog('Comienza la deuda del nivel ' + state.level + ': ' + fmt(state.debt) + '.', 'info');
+      updateHUD();
+    }
+
+    window.buyShopUpgrade = buyShopUpgrade;
+    window.skipShopAndContinue = skipShopAndContinue;
+
+    el.betRange.addEventListener('input', () => {
+      el.betValue.textContent = fmt(+el.betRange.value);
+    });
+
+    el.startRunBtn.addEventListener('click', startRun);
+    el.resetRunBtn.addEventListener('click', resetState);
+    el.cashOutBtn.addEventListener('click', tryCashOut);
+    el.buyClockBtn.addEventListener('click', () => buyUpgrade('clock'));
+    el.buyLuckBtn.addEventListener('click', () => buyUpgrade('luck'));
+    el.buyShieldBtn.addEventListener('click', () => buyUpgrade('shield'));
+    el.buyDebtCutBtn.addEventListener('click', () => buyUpgrade('debt'));
+    el.overlayBtn.addEventListener('click', hideOverlay);
+
+    document.querySelectorAll('.playBtn').forEach(btn => {
+      btn.addEventListener('click', () => openGame(btn.dataset.game));
+    });
+
+    resetState();
+  </script>
+</body>
+</html>
